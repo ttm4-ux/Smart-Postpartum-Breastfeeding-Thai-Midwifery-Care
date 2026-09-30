@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MilkFlow AI - ระบบติดตามน้ำนมแม่และหัตถการผดุงครรภ์ไทย 24 ชม.</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for Clinical Trend Monitoring -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts: Sarabun & Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            herbal: {
+              50: '#f2f9f4',
+              100: '#e1f2e6',
+              500: '#2e7d4d',
+              600: '#23653d',
+              700: '#1b4f30',
+            },
+            mother: {
+              50: '#fff5f6',
+              100: '#ffe3e8',
+              500: '#ec4899',
+              600: '#db2777',
+            },
+            warmgold: {
+              500: '#d97706',
+              600: '#b45309',
+            }
+          },
+          fontFamily: {
+            prompt: ['Prompt', 'sans-serif'],
+            sarabun: ['Sarabun', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+    }
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Prompt', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(236, 72, 153, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+    }
+    .pulse-ring {
+      animation: pulse-ring 2.5s infinite cubic-bezier(0.45, 0, 0.55, 1);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Top Navigation & Role Switcher Bar -->
+  <header class="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-rose-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight leading-none">MilkFlow AI</h1>
+            <span class="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">ผดุงครรภ์ไทยดิจิทัล</span>
+          </div>
+          <p class="text-xs text-slate-500">ติดตามน้ำนมแม่ 24 ชม. แรก & วินิจฉัยเพื่อการดูแลเฉพาะบุคคล</p>
+        </div>
+      </div>
+
+      <!-- Mode Switcher (To simulate Mother App vs Ward Staff Dashboard) -->
+      <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
+        <button id="btn-view-mother" onclick="switchView('mother')" class="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-rose-600 shadow-xs">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          <span class="hidden sm:inline">มุมมอง</span>คุณแม่หลังคลอด (เตียง 104)
+        </button>
+        <button id="btn-view-ward" onclick="switchView('ward')" class="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span class="hidden sm:inline">มุมมอง</span>วอร์ดหลังคลอด & แพทย์แผนไทย
+          <span id="badge-ward-alert" class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="fixed top-16 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- MAIN CONTAINER: VIEW 1 - MOTHER MOBILE VIEW -->
+  <main id="view-mother" class="flex-1 max-w-md w-full mx-auto px-4 py-6 space-y-5 transition-all duration-300">
+    
+    <!-- Mother Status Header Card -->
+    <div class="bg-gradient-to-br from-rose-50 via-white to-pink-50/50 rounded-3xl p-5 border border-rose-100 shadow-sm relative overflow-hidden">
+      <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-rose-200/30 rounded-full blur-xl pointer-events-none"></div>
+      
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full">เตียง 104 • ตึกหลังคลอด</span>
+            <span class="text-xs text-slate-500">ผ่าคลอด (14 ชม. ที่ผ่านมา)</span>
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 mt-1 font-heading">คุณศิริพร บุญเสริม</h2>
+          <div class="flex items-center gap-2 mt-2 text-xs text-slate-600">
+            <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
+              🌿 ธาตุเจ้าเรือน: <strong id="user-element">วาโยธาตุ (ธาตุลม)</strong>
+            </span>
+          </div>
+        </div>
+        <div class="text-center bg-white p-2.5 rounded-2xl shadow-xs border border-rose-100/80">
+          <div class="text-[11px] text-slate-500">ชั่วโมงหลังคลอด</div>
+          <div class="text-2xl font-bold text-rose-600 font-heading">14<span class="text-xs font-normal text-slate-400">/24 ชม.</span></div>
+        </div>
+      </div>
+
+      <!-- 24-Hour Postpartum Timeline Progress -->
+      <div class="mt-4 pt-4 border-t border-rose-100/80">
+        <div class="flex justify-between text-xs text-slate-500 mb-1.5 font-medium">
+          <span>0 ชม. (แรกคลอด)</span>
+          <span class="text-rose-600 font-bold">14 ชม. (ปัจจุบัน)</span>
+          <span>24 ชม. (เตรียมกลับบ้าน)</span>
+        </div>
+        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden flex">
+          <div class="bg-gradient-to-r from-emerald-400 via-rose-400 to-rose-500 h-full rounded-full transition-all duration-500" style="width: 58.3%;"></div>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-rose-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+          </svg>
+          รอบกระตุ้นเข้าเต้า/ปั๊มครั้งต่อไป: <strong>อีก 35 นาที</strong>
+        </p>
+      </div>
+    </div>
+
+    <!-- Primary Big Action Button -->
+    <div class="space-y-2">
+      <button onclick="openLogModal()" class="w-full bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:from-rose-600 hover:to-pink-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-rose-500/25 flex items-center justify-between group transition-all duration-200 active:scale-[0.98]">
+        <div class="flex items-center gap-3.5 text-left">
+          <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white backdrop-blur-xs text-xl">
+            💧
+          </div>
+          <div>
+            <div class="text-lg font-heading tracking-wide">บันทึกอาการ & การไหลของน้ำนม</div>
+            <div class="text-xs text-rose-100 font-normal">ประเมินน้ำนมหยดแรก + ตรวจอาการคัดเต้า</div>
+          </div>
+        </div>
+        <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </button>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <!-- AI Scan Trigger -->
+        <button onclick="openAiScanModal()" class="bg-white border border-slate-200 hover:border-emerald-400 p-3.5 rounded-2xl flex items-center gap-3 shadow-xs hover:shadow-md transition-all text-left">
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
+            📷
+          </div>
+          <div>
+            <div class="text-xs font-bold text-slate-800">AI Visual Scan</div>
+            <div class="text-[10px] text-slate-500">สแกนสีน้ำนม / รอยแดงเต้า</div>
+          </div>
+        </button>
+
+        <!-- SOS Request Button -->
+        <button onclick="requestEmergencyMidwife()" class="bg-rose-50/80 border border-rose-200 hover:bg-rose-100/70 p-3.5 rounded-2xl flex items-center gap-3 shadow-xs transition-all text-left">
+          <div class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold text-sm pulse-ring">
+            🆘
+          </div>
+          <div>
+            <div class="text-xs font-bold text-rose-800">ตามแพทย์แผนไทย</div>
+            <div class="text-[10px] text-rose-600">ปวดคัดมาก / น้ำนมไม่ออก</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Current Breast Status Summary Card -->
+    <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-slate-900 flex items-center gap-2">
+          <span>🩺</span> สถานะล่าสุดของเต้านม & น้ำนม
+        </h3>
+        <span id="mother-status-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> เฝ้าระวังเต้าคัด
+        </span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-center">
+        <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+          <div class="text-xs text-slate-500">การไหลของน้ำนม</div>
+          <div id="stat-milk-flow" class="text-sm font-bold text-slate-800 mt-1">ซึมเป็นหยด (Colostrum)</div>
+          <div class="text-[10px] text-emerald-600 font-medium">สีเหลืองอำพันคุณค่าสูง</div>
+        </div>
+        <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+          <div class="text-xs text-slate-500">ระดับความเจ็บปวด (Pain)</div>
+          <div id="stat-pain-level" class="text-sm font-bold text-rose-600 mt-1">4 / 10 (ตึงเต้าเล็กน้อย)</div>
+          <div class="text-[10px] text-slate-400">ควรประคบอุ่นก่อนเข้าเต้า</div>
+        </div>
+      </div>
+
+      <!-- Quick Tips from Thai Midwifery -->
+      <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3.5 space-y-2">
+        <div class="flex items-center gap-2 text-xs font-bold text-emerald-900">
+          <span>🌿</span> คำแนะนำผดุงครรภ์ไทยตามธาตุลม (วาโย)
+        </div>
+        <p class="text-xs text-emerald-800 leading-relaxed">
+          มารดาธาตุลมมักมีภาวะเลือดลมไหลเวียนติดขัดง่าย ให้ดื่ม <strong>"น้ำขิงอุ่นจัดผสมน้ำผึ้งรวง"</strong> เพื่อกระจายลม และใช้ <strong>ลูกประคบสมุนไพรเต้านมอุ่นพอเหมาะ</strong> วนรอบฐานเต้า 5-10 นาทีก่อนกระตุ้นดูด
+        </p>
+      </div>
+    </div>
+
+    <!-- Tabbed Guidance: Thai Traditional Care Plan -->
+    <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h3 class="font-bold text-slate-900 text-sm">คลังความรู้ฟื้นฟูเต้านม & กระตุ้นน้ำนม</h3>
+        <span class="text-[11px] text-rose-600 font-medium">สูตร 24 ชั่วโมง</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 text-center text-xs">
+        <button onclick="showGuideModal('compress')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 transition border border-slate-100 flex flex-col items-center gap-1">
+          <span class="text-xl">♨️</span>
+          <span class="font-semibold">ประคบสมุนไพร</span>
+        </button>
+        <button onclick="showGuideModal('massage')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 transition border border-slate-100 flex flex-col items-center gap-1">
+          <span class="text-xl">🤲</span>
+          <span class="font-semibold">นวดเปิดท่อ</span>
+        </button>
+        <button onclick="showGuideModal('nutrition')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 transition border border-slate-100 flex flex-col items-center gap-1">
+          <span class="text-xl">🍲</span>
+          <span class="font-semibold">อาหารตามธาตุ</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 24-Hour Log History -->
+    <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-3">
+      <h3 class="font-bold text-slate-900 text-sm flex items-center justify-between">
+        <span>ประวัติการบันทึก 24 ชม.</span>
+        <span class="text-xs text-slate-400 font-normal">อัปเดตตรงสู่วอร์ด</span>
+      </h3>
+      <div id="mother-history-list" class="space-y-2 text-xs">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </main>
+
+  <!-- MAIN CONTAINER: VIEW 2 - WARD & THAI MIDWIFERY DASHBOARD -->
+  <main id="view-ward" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 py-6 space-y-6">
+    
+    <!-- Top KPI Highlights -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div class="text-xs text-slate-500 font-medium">มารดาในตึกหลังคลอด</div>
+        <div class="text-2xl font-bold text-slate-800 mt-1 font-heading">8 <span class="text-xs font-normal text-slate-400">เตียง</span></div>
+        <div class="text-[11px] text-emerald-600 mt-1">● บันทึกสม่ำเสมอ 100%</div>
+      </div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div class="text-xs text-slate-500 font-medium">เริ่มมีน้ำนมหยดแรก (Colostrum)</div>
+        <div class="text-2xl font-bold text-emerald-600 mt-1 font-heading">87.5%</div>
+        <div class="text-[11px] text-slate-500 mt-1">เฉลี่ย 8.2 ชม. หลังคลอด</div>
+      </div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div class="text-xs text-slate-500 font-medium">เคสเสี่ยงเต้าคัด / ท่อน้ำนมอุดตัน</div>
+        <div class="text-2xl font-bold text-rose-600 mt-1 font-heading" id="kpi-critical-count">2 <span class="text-xs font-normal text-slate-400">เคส</span></div>
+        <div class="text-[11px] text-rose-600 mt-1">ต้องส่งหัตถการผดุงครรภ์ด่วน</div>
+      </div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div class="text-xs text-slate-500 font-medium">ประสิทธิผลหัตถการแผนไทย</div>
+        <div class="text-2xl font-bold text-amber-600 mt-1 font-heading">94%</div>
+        <div class="text-[11px] text-emerald-600 mt-1">ลดปวด & น้ำนมเริ่มพุ่งใน 30 นาที</div>
+      </div>
+    </div>
+
+    <!-- Ward Bed Matrix & Triage Filter -->
+    <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900 font-heading">ผังติดตามน้ำนมแม่ประจำเตียง (Ward Bed Triage)</h2>
+          <p class="text-xs text-slate-500">ระบบคัดกรองความเสี่ยงภาวะเต้านมคัด & ติดตามน้ำนมแม่ 24 ชั่วโมงแรกแบบ Real-time</p>
+        </div>
+        <!-- Filter Tabs -->
+        <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-medium">
+          <button onclick="filterBeds('all')" id="filter-all" class="px-3 py-1.5 rounded-lg bg-white shadow-xs font-semibold text-slate-800">ทั้งหมด (8)</button>
+          <button onclick="filterBeds('urgent')" id="filter-urgent" class="px-3 py-1.5 rounded-lg text-rose-700 hover:bg-white/50">วิกฤต/คัดเต้า (2)</button>
+          <button onclick="filterBeds('warning')" id="filter-warning" class="px-3 py-1.5 rounded-lg text-amber-700 hover:bg-white/50">เฝ้าระวัง (2)</button>
+          <button onclick="filterBeds('normal')" id="filter-normal" class="px-3 py-1.5 rounded-lg text-emerald-700 hover:bg-white/50">ปกติ (4)</button>
+        </div>
+      </div>
+
+      <!-- Bed Cards Grid -->
+      <div id="bed-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Clinical Details & Analytics Drawer Modal -->
+    <div id="ward-detail-section" class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-5">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="detail-bed-number" class="text-sm font-bold uppercase tracking-wider bg-rose-100 text-rose-800 px-3 py-1 rounded-full font-heading">เตียง 104</span>
+            <span id="detail-triage-badge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">เฝ้าระวังคัดตึง</span>
+          </div>
+          <h3 id="detail-patient-name" class="text-xl font-bold text-slate-900 mt-2 font-heading">คุณศิริพร บุญเสริม (อายุ 29 ปี)</h3>
+          <p id="detail-delivery-info" class="text-xs text-slate-500">ผ่าตัดคลอด (C-Section) เมื่อ 14 ชั่วโมงที่ผ่านมา • ครรภ์แรก (G1P0)</p>
+        </div>
+        <!-- Action Buttons -->
+        <div class="flex gap-2">
+          <button onclick="openMidwiferyOrderModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition">
+            <span>🌿</span> สั่งหัตถการผดุงครรภ์ไทย
+          </button>
+        </div>
+      </div>
+
+      <!-- Two column breakdown: Chart vs Care Plan -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+        <!-- Chart.js 24h Flow & Pain Trend -->
+        <div class="lg:col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-slate-700">แนวโน้มระดับความเจ็บปวด (Pain Score) และการไหลของน้ำนมตลอด 24 ชม.</span>
+            <span class="text-slate-400">กราฟ Real-time</span>
+          </div>
+          <div class="h-64">
+            <canvas id="wardTrendChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Thai Midwifery Specific Prescriptions & Elements -->
+        <div class="bg-gradient-to-br from-emerald-50/60 via-white to-amber-50/40 p-4 rounded-2xl border border-emerald-100 space-y-3">
+          <div class="flex items-center gap-2 text-sm font-bold text-emerald-900">
+            <span>📜</span> แผนการรักษาทางผดุงครรภ์ไทย
+          </div>
+          
+          <div class="text-xs space-y-2.5">
+            <div class="bg-white p-2.5 rounded-xl border border-emerald-100">
+              <span class="text-slate-400 block text-[10px]">สมุฏฐานธาตุ / ธาตุเจ้าเรือนกำเนิด</span>
+              <strong class="text-slate-800 text-xs">วาโยธาตุ (ธาตุลม) - มักมีลมกองหยาบคั่งค้าง</strong>
+            </div>
+
+            <div class="bg-white p-2.5 rounded-xl border border-emerald-100">
+              <span class="text-slate-400 block text-[10px]">หัตถการแนะนำประจำชั่วโมงที่ 14</span>
+              <ul class="list-disc list-inside text-slate-700 space-y-1 mt-1 text-[11px]">
+                <li>ประคบเต้าด้วยสมุนไพรอบอุ่น (ไพล, ผิวมะกรูด, ใบมะขาม, การบูร)</li>
+                <li>นวดกดจุดเปิดท่อน้ำนมตามแนวเส้นประธานสิบ (เส้นอิทา-ปิงคลา)</li>
+              </ul>
+            </div>
+
+            <div class="bg-white p-2.5 rounded-xl border border-emerald-100">
+              <span class="text-slate-400 block text-[10px]">โภชนบำบัดกระตุ้นน้ำนมมื้อถัดไป</span>
+              <span class="text-emerald-800 font-medium text-[11px]">แกงเลียงหัวปลีกุ้งสด + น้ำต้มอินทผลัมอุ่น</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: MILK FLOW LOGGING -->
+  <div id="modal-log" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 font-heading">บันทึกการไหลของน้ำนม & อาการเต้า</h3>
+          <p class="text-xs text-slate-500">บันทึกเพื่อประเมินความผิดปกติและส่งต่อแพทย์แผนไทย</p>
+        </div>
+        <button onclick="closeLogModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">✕</button>
+      </div>
+
+      <form id="milk-log-form" onsubmit="handleLogSubmit(event)" class="space-y-4">
+        <!-- Milk Flow Status Options -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-2">1. ลักษณะการไหลของน้ำนมในรอบนี้ *</label>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-rose-400 has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50/50">
+              <input type="radio" name="flow_status" value="ยังไม่ไหล" class="text-rose-600 focus:ring-rose-500" required>
+              <div>
+                <div class="font-semibold text-slate-800">ยังไม่ไหล / แห้ง</div>
+                <div class="text-[10px] text-slate-400">ยังไม่มีหยดน้ำนม</div>
+              </div>
+            </label>
+            <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-rose-400 has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50/50">
+              <input type="radio" name="flow_status" value="ซึมเป็นหยด (Colostrum)" checked class="text-rose-600 focus:ring-rose-500">
+              <div>
+                <div class="font-semibold text-slate-800">ซึมเป็นหยด (Colostrum)</div>
+                <div class="text-[10px] text-emerald-600">หัวน้ำนมเหลืองใส/ข้น</div>
+              </div>
+            </label>
+            <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-rose-400 has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50/50">
+              <input type="radio" name="flow_status" value="ไหลเป็นสาย" class="text-rose-600 focus:ring-rose-500">
+              <div>
+                <div class="font-semibold text-slate-800">ไหลพุ่ง / เป็นสาย</div>
+                <div class="text-[10px] text-slate-400">ท่อน้ำนมเปิดดีมาก</div>
+              </div>
+            </label>
+            <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-rose-400 has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50/50">
+              <input type="radio" name="flow_status" value="คัดตึงแต่น้ำนมไม่ออก" class="text-rose-600 focus:ring-rose-500">
+              <div>
+                <div class="font-semibold text-rose-700">คัดตึงแต่น้ำนมไม่ออก</div>
+                <div class="text-[10px] text-rose-500">เสี่ยงท่ออุดตัน/คัดหิน</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Pain Score Slider -->
+        <div>
+          <div class="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
+            <label>2. ระดับความตึง/เจ็บปวดเต้านม (Pain Score: 0 - 10) *</label>
+            <span id="slider-pain-val" class="text-sm font-extrabold text-rose-600">4 / 10</span>
+          </div>
+          <input type="range" id="input-pain-slider" min="0" max="10" value="4" oninput="updatePainLabel(this.value)" class="w-full accent-rose-500 cursor-pointer">
+          <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+            <span>0 นิ่มสบาย ไม่ปวด</span>
+            <span>5 เริ่มตึงแน่น</span>
+            <span>10 แข็งเป็นก้อน ปวดรุนแรง</span>
+          </div>
+        </div>
+
+        <!-- Duration & Baby Suckling Quality -->
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">ระยะเวลาเข้าเต้า (นาที)</label>
+            <input type="number" id="input-latch-time" value="20" min="0" max="60" class="w-full p-2.5 rounded-xl border border-slate-200 text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-hidden">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">ท่าทางเข้าเต้า</label>
+            <select id="input-latch-posture" class="w-full p-2.5 rounded-xl border border-slate-200 text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-hidden">
+              <option value="ท่าขวางตักประยุกต์ (Cross-cradle)">ท่าขวางตักประยุกต์ (Cross-cradle)</option>
+              <option value="ท่าฟุตบอล (Football hold)">ท่าฟุตบอล (Football hold)</option>
+              <option value="ท่านอนตะแคง (Side-lying)">ท่านอนตะแคง (Side-lying)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Symptoms Checklist -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">3. อาการที่พบร่วม (เลือกได้หลายข้อ)</label>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2 text-slate-700">
+              <input type="checkbox" name="symptom" value="หัวนมแตก/เป็นแผล" class="rounded text-rose-600"> หัวนมแตก/เจ็บแสบ
+            </label>
+            <label class="flex items-center gap-2 text-slate-700">
+              <input type="checkbox" name="symptom" value="เต้านมร้อนแดง" class="rounded text-rose-600"> เต้าร้อนผ่าว/บวมแดง
+            </label>
+            <label class="flex items-center gap-2 text-slate-700">
+              <input type="checkbox" name="symptom" value="คลำเจอก้อนไต" class="rounded text-rose-600"> คลำเจอก้อนไตแข็ง
+            </label>
+            <label class="flex items-center gap-2 text-slate-700">
+              <input type="checkbox" name="symptom" value="ครั่นเนื้อครั่นตัวมีไข้" class="rounded text-rose-600"> มีไข้ต่ำ/ครั่นเนื้อตัว
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex gap-2">
+          <button type="button" onclick="closeLogModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-xs hover:bg-slate-50">ยกเลิก</button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs shadow-md shadow-rose-500/20">บันทึกข้อมูลเข้าระบบ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: AI VISUAL SCAN -->
+  <div id="modal-ai-scan" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">AI</div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 font-heading">AI Computer Vision Scan</h3>
+            <p class="text-[11px] text-slate-500">จำลองการคัดกรองสีน้ำนม & ระดับความคัดตึงเต้า</p>
+          </div>
+        </div>
+        <button onclick="closeAiScanModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="space-y-3">
+        <!-- Camera Preview Container -->
+        <div class="relative bg-slate-950 rounded-2xl h-52 flex flex-col items-center justify-center text-white overflow-hidden border border-slate-800">
+          <div id="ai-scanning-overlay" class="absolute inset-0 bg-emerald-500/10 hidden flex-col items-center justify-center">
+            <div class="w-full h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-bounce"></div>
+            <span class="text-xs font-semibold text-emerald-300 mt-2 bg-slate-900/80 px-3 py-1 rounded-full">กำลังประมวลผลโมเดล AI...</span>
+          </div>
+
+          <!-- Target Reticle -->
+          <div class="border-2 border-dashed border-emerald-400/70 w-36 h-36 rounded-2xl flex items-center justify-center text-center p-3 text-xs text-slate-300">
+            <span id="ai-box-label">วางภาพตัวอย่างน้ำนม หรือบริเวณเต้านมในกรอบ</span>
+          </div>
+          <span class="text-[10px] text-slate-400 mt-2">🔒 ระบบรักษาความเป็นส่วนตัวตามมาตรฐานเวชระเบียน</span>
+        </div>
+
+        <!-- Simulation action buttons -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button onclick="runAiScanSimulation('colostrum')" class="py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-medium border border-amber-200 flex items-center justify-center gap-1.5">
+            <span>✨</span> จำลองตรวจ: หัวน้ำนมดี
+          </button>
+          <button onclick="runAiScanSimulation('engorgement')" class="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-900 font-medium border border-rose-200 flex items-center justify-center gap-1.5">
+            <span>⚠️</span> จำลองตรวจ: เต้าคัดเสี่ยงอักเสบ
+          </button>
+        </div>
+
+        <!-- AI Result Box -->
+        <div id="ai-result-card" class="hidden bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-2">
+          <div class="flex items-center justify-between font-bold">
+            <span class="text-slate-800">ผลการวิเคราะห์โดย AI:</span>
+            <span id="ai-result-confidence" class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-[10px]">ความแม่นยำ 94.8%</span>
+          </div>
+          <p id="ai-result-text" class="text-slate-600 leading-relaxed text-[11px]"></p>
+          <div id="ai-result-recommendation" class="p-2 rounded-xl bg-white border border-slate-200 text-[11px] text-emerald-800 font-medium"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: WARD THAI MIDWIFERY ORDER -->
+  <div id="modal-midwife-order" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 font-heading">สั่งหัตถการผดุงครรภ์ไทย (Midwifery Order)</h3>
+          <p class="text-xs text-slate-500">สำหรับส่งมอบทีมแพทย์แผนไทยประจำตึกหลังคลอด 24 ชม.</p>
+        </div>
+        <button onclick="closeMidwiferyOrderModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">✕</button>
+      </div>
+
+      <form id="midwife-order-form" onsubmit="handleMidwifeOrderSubmit(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">เลือกหัตถการที่ต้องการดำเนินการ *</label>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 hover:bg-emerald-50/50 cursor-pointer">
+              <input type="checkbox" name="procedures" value="ประคบสมุนไพรสดสูตรเต้าคัด" checked class="rounded text-emerald-600">
+              <div>
+                <span class="font-bold text-slate-800">ประคบสมุนไพรสดสูตรเต้าคัด (ไพล + ขมิ้นอ้อย + ใบส้มป่อย + การบูร)</span>
+                <p class="text-[10px] text-slate-500">ช่วยคลายกล้ามเนื้อฐานเต้าและเปิดท่อที่อุดกั้น</p>
+              </div>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 hover:bg-emerald-50/50 cursor-pointer">
+              <input type="checkbox" name="procedures" value="นวดเปิดท่อน้ำนมตามแนวเส้นประธานสิบ" checked class="rounded text-emerald-600">
+              <div>
+                <span class="font-bold text-slate-800">นวดเปิดท่อน้ำนมตามแนวเส้นประธานสิบ (Breast Acupressure)</span>
+                <p class="text-[10px] text-slate-500">กระตุ้นกลไกฮอร์โมน Oxytocin & Prolactin ระบายน้ำนมค้างเต้า</p>
+              </div>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 hover:bg-emerald-50/50 cursor-pointer">
+              <input type="checkbox" name="procedures" value="จัดสำรับอาหารและน้ำต้มสมุนไพรตามธาตุเจ้าเรือน" class="rounded text-emerald-600">
+              <div>
+                <span class="font-bold text-slate-800">จัดสำรับอาหารและน้ำต้มสมุนไพรกระตุ้นน้ำนมตามธาตุเจ้าเรือน</span>
+                <p class="text-[10px] text-slate-500">บำรุงธาตุไฟย่อยและขับน้ำคาวปลา</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">ความเร่งด่วน</label>
+          <select id="order-priority" class="w-full p-2.5 rounded-xl border border-slate-200 text-slate-800">
+            <option value="ด่วนมาก (ภายใน 30 นาที) - Pain > 6">ด่วนมาก (ภายใน 30 นาที) - มีอาการเต้าคัดแข็ง</option>
+            <option value="ปกติ (รอบถัดไป 1-2 ชม.)">ปกติ (รอบตรวจประจำ 1-2 ชม.)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">บันทึกเพิ่มเติมจากพยาบาลประจำตึก</label>
+          <textarea id="order-note" rows="2" placeholder="เช่น มารดารู้สึกปวดเต้าข้างซ้ายมาก นมยังไม่ออก..." class="w-full p-2 rounded-xl border border-slate-200 text-slate-800"></textarea>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeMidwiferyOrderModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold">ยกเลิก</button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-600/20">ส่งใบสั่งหัตถการ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: KNOWLEDGE & MIDWIFERY GUIDE -->
+  <div id="modal-guide" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="guide-title" class="text-base font-bold text-slate-900 font-heading">คู่มือการผดุงครรภ์ไทย</h3>
+        <button onclick="closeGuideModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">✕</button>
+      </div>
+      <div id="guide-body" class="text-xs text-slate-600 space-y-3 leading-relaxed">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Global Application State simulating real-time ward data */
+    const appState = {
+      currentView: 'mother',
+      activeBedId: 104,
+      beds: [
+        {
+          id: 101,
+          name: 'คุณกานดา สุขเจริญ',
+          age: 26,
+          delivery: 'คลอดธรรมชาติ (18 ชม.)',
+          element: 'อาโปธาตุ (ธาตุน้ำ)',
+          status: 'normal', // normal, warning, urgent
+          milkFlow: 'ไหลเป็นสาย',
+          painScore: 2,
+          lastLog: '25 นาทีที่แล้ว',
+          history: [
+            { hour: 2, flow: 'ซึมเป็นหยด', pain: 2 },
+            { hour: 8, flow: 'ซึมเป็นหยด', pain: 2 },
+            { hour: 14, flow: 'ไหลเป็นสาย', pain: 2 },
+            { hour: 18, flow: 'ไหลเป็นสาย', pain: 2 }
+          ]
+        },
+        {
+          id: 102,
+          name: 'คุณพัชรา สุวรรณ',
+          age: 32,
+          delivery: 'ผ่าคลอด (8 ชม.)',
+          element: 'ปฐวีธาตุ (ธาตุดิน)',
+          status: 'warning',
+          milkFlow: 'ยังไม่ไหล',
+          painScore: 5,
+          lastLog: '40 นาทีที่แล้ว',
+          history: [
+            { hour: 2, flow: 'ยังไม่ไหล', pain: 3 },
+            { hour: 6, flow: 'ยังไม่ไหล', pain: 4 },
+            { hour: 8, flow: 'ยังไม่ไหล', pain: 5 }
+          ]
+        },
+        {
+          id: 103,
+          name: 'คุณนิภาภรณ์ ใจดี',
+          age: 30,
+          delivery: 'คลอดธรรมชาติ (22 ชม.)',
+          element: 'เตโชธาตุ (ธาตุไฟ)',
+          status: 'normal',
+          milkFlow: 'ไหลเป็นสาย',
+          painScore: 1,
+          lastLog: '1 ชม. ที่แล้ว',
+          history: [
+            { hour: 4, flow: 'ซึมเป็นหยด', pain: 2 },
+            { hour: 12, flow: 'ไหลเป็นสาย', pain: 1 },
+            { hour: 20, flow: 'ไหลเป็นสาย', pain: 1 }
+          ]
+        },
+        {
+          id: 104, // PRIMARY PATIENT (Mother View sync)
+          name: 'คุณศิริพร บุญเสริม',
+          age: 29,
+          delivery: 'ผ่าคลอด (14 ชม.)',
+          element: 'วาโยธาตุ (ธาตุลม)',
+          status: 'warning',
+          milkFlow: 'ซึมเป็นหยด (Colostrum)',
+          painScore: 4,
+          lastLog: '15 นาทีที่แล้ว',
+          history: [
+            { hour: 2, flow: 'ยังไม่ไหล', pain: 2 },
+            { hour: 6, flow: 'ซึมเป็นหยด', pain: 3 },
+            { hour: 10, flow: 'ซึมเป็นหยด', pain: 4 },
+            { hour: 14, flow: 'ซึมเป็นหยด', pain: 4 }
+          ]
+        },
+        {
+          id: 105,
+          name: 'คุณวรรณา ศรีสุข',
+          age: 34,
+          delivery: 'ผ่าคลอด (19 ชม.)',
+          element: 'เตโชธาตุ (ธาตุไฟ)',
+          status: 'urgent',
+          milkFlow: 'คัดตึงแต่น้ำนมไม่ออก',
+          painScore: 8,
+          lastLog: '5 นาทีที่แล้ว',
+          history: [
+            { hour: 4, flow: 'ยังไม่ไหล', pain: 3 },
+            { hour: 10, flow: 'ซึมเป็นหยด', pain: 5 },
+            { hour: 16, flow: 'คัดตึงแต่น้ำนมไม่ออก', pain: 7 },
+            { hour: 19, flow: 'คัดตึงแต่น้ำนมไม่ออก', pain: 8 }
+          ]
+        },
+        {
+          id: 106,
+          name: 'คุณอรอุมา เกษมสุข',
+          age: 24,
+          delivery: 'คลอดธรรมชาติ (11 ชม.)',
+          element: 'อาโปธาตุ (ธาตุน้ำ)',
+          status: 'normal',
+          milkFlow: 'ซึมเป็นหยด (Colostrum)',
+          painScore: 2,
+          lastLog: '30 นาทีที่แล้ว',
+          history: [
+            { hour: 3, flow: 'ซึมเป็นหยด', pain: 2 },
+            { hour: 8, flow: 'ซึมเป็นหยด', pain: 2 },
+            { hour: 11, flow: 'ซึมเป็นหยด', pain: 2 }
+          ]
+        },
+        {
+          id: 107,
+          name: 'คุณณัฐมน เลิศวิไล',
+          age: 28,
+          delivery: 'คลอดธรรมชาติ (6 ชม.)',
+          element: 'ปฐวีธาตุ (ธาตุดิน)',
+          status: 'normal',
+          milkFlow: 'ซึมเป็นหยด (Colostrum)',
+          painScore: 3,
+          lastLog: '12 นาทีที่แล้ว',
+          history: [
+            { hour: 2, flow: 'ยังไม่ไหล', pain: 2 },
+            { hour: 6, flow: 'ซึมเป็นหยด', pain: 3 }
+          ]
+        },
+        {
+          id: 108,
+          name: 'คุณสุดาพร มีมงคล',
+          age: 31,
+          delivery: 'ผ่าคลอด (16 ชม.)',
+          element: 'วาโยธาตุ (ธาตุลม)',
+          status: 'urgent',
+          milkFlow: 'คัดตึงแต่น้ำนมไม่ออก',
+          painScore: 7,
+          lastLog: '18 นาทีที่แล้ว',
+          history: [
+            { hour: 4, flow: 'ยังไม่ไหล', pain: 3 },
+            { hour: 10, flow: 'ยังไม่ไหล', pain: 5 },
+            { hour: 16, flow: 'คัดตึงแต่น้ำนมไม่ออก', pain: 7 }
+          ]
+        }
+      ]
+    };
+
+    let chartInstance = null;
+
+    window.onload = function() {
+      renderMotherHistory();
+      renderWardBeds('all');
+      initWardChart(104);
+    };
+
+    function switchView(view) {
+      appState.currentView = view;
+      const motherView = document.getElementById('view-mother');
+      const wardView = document.getElementById('view-ward');
+      const btnMother = document.getElementById('btn-view-mother');
+      const btnWard = document.getElementById('btn-view-ward');
+
+      if (view === 'mother') {
+        motherView.classList.remove('hidden');
+        wardView.classList.add('hidden');
+        btnMother.className = 'flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-rose-600 shadow-xs';
+        btnWard.className = 'flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900';
+      } else {
+        motherView.classList.add('hidden');
+        wardView.classList.remove('hidden');
+        btnMother.className = 'flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900';
+        btnWard.className = 'flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 bg-white text-emerald-700 shadow-xs';
+        
+        // Re-render chart in case of container sizing
+        setTimeout(() => {
+          if (chartInstance) chartInstance.resize();
+        }, 100);
+      }
+    }
+
+    function renderMotherHistory() {
+      const patient = appState.beds.find(b => b.id === 104);
+      const container = document.getElementById('mother-history-list');
+      if (!container || !patient) return;
+
+      container.innerHTML = '';
+      patient.history.slice().reverse().forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'p-2.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between';
+        
+        let flowBadgeColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+        if (item.flow === 'คัดตึงแต่น้ำนมไม่ออก') flowBadgeColor = 'text-rose-700 bg-rose-50 border-rose-200';
+        if (item.flow === 'ยังไม่ไหล') flowBadgeColor = 'text-slate-600 bg-slate-100 border-slate-200';
+
+        itemDiv.innerHTML = `
+          <div>
+            <span class="font-bold text-slate-800">ชม. ที่ ${item.hour} หลังคลอด</span>
+            <div class="text-[11px] text-slate-400 mt-0.5">ระดับความตึงปวด: <strong class="text-rose-600">${item.pain}/10</strong></div>
+          </div>
+          <span class="px-2 py-0.5 rounded-md border text-[10px] font-semibold ${flowBadgeColor}">
+            ${item.flow}
+          </span>
+        `;
+        container.appendChild(itemDiv);
+      });
+    }
+
+    function renderWardBeds(filter = 'all') {
+      const container = document.getElementById('bed-grid');
+      if (!container) return;
+
+      container.innerHTML = '';
+      let filtered = appState.beds;
+      if (filter !== 'all') {
+        filtered = appState.beds.filter(b => b.status === filter);
+      }
+
+      // Update triage button styles
+      ['all', 'urgent', 'warning', 'normal'].forEach(f => {
+        const el = document.getElementById(`filter-${f}`);
+        if (el) {
+          if (f === filter) {
+            el.className = 'px-3 py-1.5 rounded-lg bg-white shadow-xs font-bold text-slate-900 border border-slate-200';
+          } else {
+            el.className = 'px-3 py-1.5 rounded-lg text-slate-600 hover:bg-white/50';
+          }
+        }
+      });
+
+      filtered.forEach(bed => {
+        const card = document.createElement('div');
+        
+        let statusBorder = 'border-slate-200 hover:border-slate-300';
+        let statusBg = 'bg-emerald-50 text-emerald-800';
+        let statusDot = 'bg-emerald-500';
+        let statusText = 'ปกติ (ท่อเปิดดี)';
+
+        if (bed.status === 'warning') {
+          statusBorder = 'border-amber-200 bg-amber-50/20';
+          statusBg = 'bg-amber-100 text-amber-900';
+          statusDot = 'bg-amber-500';
+          statusText = 'เฝ้าระวังเต้าคัด';
+        } else if (bed.status === 'urgent') {
+          statusBorder = 'border-rose-300 bg-rose-50/30';
+          statusBg = 'bg-rose-100 text-rose-900';
+          statusDot = 'bg-rose-600';
+          statusText = 'วิกฤต/คัดแข็งเป็นหิน';
+        }
+
+        const isSelected = bed.id === appState.activeBedId;
+
+        card.className = `p-4 rounded-3xl bg-white border ${statusBorder} shadow-xs hover:shadow-md transition-all cursor-pointer ${isSelected ? 'ring-2 ring-emerald-500' : ''}`;
+        card.onclick = () => selectBedForDetail(bed.id);
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-heading">เตียง ${bed.id}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${statusBg}">
+              <span class="w-1.5 h-1.5 rounded-full ${statusDot}"></span> ${statusText}
+            </span>
+          </div>
+
+          <div class="mt-3">
+            <h4 class="font-bold text-slate-900 text-sm font-heading">${bed.name}</h4>
+            <p class="text-[11px] text-slate-500">${bed.delivery}</p>
+          </div>
+
+          <div class="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <span class="text-slate-400 block text-[10px]">การไหลของน้ำนม</span>
+              <strong class="text-slate-800 line-clamp-1">${bed.milkFlow}</strong>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px]">ความเจ็บปวด (Pain)</span>
+              <strong class="${bed.painScore >= 6 ? 'text-rose-600 font-bold' : 'text-slate-800'}">${bed.painScore}/10</strong>
+            </div>
+          </div>
+
+          <div class="mt-3 pt-2 text-[10px] flex items-center justify-between text-slate-400">
+            <span>🌿 ${bed.element.split(' ')[0]}</span>
+            <span>บันทึก: ${bed.lastLog}</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function filterBeds(filter) {
+      renderWardBeds(filter);
+    }
+
+    function selectBedForDetail(bedId) {
+      appState.activeBedId = bedId;
+      const bed = appState.beds.find(b => b.id === bedId);
+      if (!bed) return;
+
+      document.getElementById('detail-bed-number').innerText = `เตียง ${bed.id}`;
+      document.getElementById('detail-patient-name').innerText = `${bed.name} (อายุ ${bed.age} ปี)`;
+      document.getElementById('detail-delivery-info').innerText = `${bed.delivery} • ธาตุเจ้าเรือน: ${bed.element}`;
+      
+      const badge = document.getElementById('detail-triage-badge');
+      if (bed.status === 'urgent') {
+        badge.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800';
+        badge.innerText = 'วิกฤตคัดเต้า (ต้องทำหัตถการ)';
+      } else if (bed.status === 'warning') {
+        badge.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800';
+        badge.innerText = 'เฝ้าระวังคัดตึง';
+      } else {
+        badge.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+        badge.innerText = 'ปกติ ท่อเปิดสม่ำเสมอ';
+      }
+
+      renderWardBeds(); // refresh border ring
+      updateWardChart(bed);
+    }
+
+    function initWardChart(bedId) {
+      const bed = appState.beds.find(b => b.id === bedId);
+      const ctx = document.getElementById('wardTrendChart').getContext('2d');
+      
+      const labels = bed.history.map(h => `ชม. ${h.hour}`);
+      const painData = bed.history.map(h => h.pain);
+      
+      // Map milk flow into numeric intensity for chart visualization: 0=none, 1=colostrum drops, 2=spray, 3=engorged
+      const flowData = bed.history.map(h => {
+        if (h.flow.includes('เป็นสาย')) return 3;
+        if (h.flow.includes('ซึม')) return 2;
+        if (h.flow.includes('ยังไม่ไหล')) return 0.5;
+        return 1;
+      });
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'ระดับความเจ็บปวด (Pain Score 0-10)',
+              data: painData,
+              borderColor: '#f43f5e',
+              backgroundColor: 'rgba(244, 63, 94, 0.1)',
+              tension: 0.35,
+              fill: true,
+              yAxisID: 'y'
+            },
+            {
+              label: 'ปริมาณการไหล (ระดับ 0-3)',
+              data: flowData,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderDash: [5, 5],
+              tension: 0.2,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                font: { family: 'Prompt', size: 11 },
+                boxWidth: 12
+              }
+            }
+          },
+          scales: {
+            y: {
+              type: 'linear',
+              position: 'left',
+              min: 0,
+              max: 10,
+              title: { display: true, text: 'Pain Score (0-10)', font: { size: 10 } }
+            },
+            y1: {
+              type: 'linear',
+              position: 'right',
+              min: 0,
+              max: 4,
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'ดัชนีการไหล', font: { size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    function updateWardChart(bed) {
+      if (!chartInstance) return;
+      chartInstance.data.labels = bed.history.map(h => `ชม. ${h.hour}`);
+      chartInstance.data.datasets[0].data = bed.history.map(h => h.pain);
+      chartInstance.data.datasets[1].data = bed.history.map(h => {
+        if (h.flow.includes('เป็นสาย')) return 3;
+        if (h.flow.includes('ซึม')) return 2;
+        if (h.flow.includes('ยังไม่ไหล')) return 0.5;
+        return 1;
+      });
+      chartInstance.update();
+    }
+
+    function openLogModal() {
+      document.getElementById('modal-log').classList.remove('hidden');
+    }
+
+    function closeLogModal() {
+      document.getElementById('modal-log').classList.add('hidden');
+    }
+
+    function updatePainLabel(val) {
+      document.getElementById('slider-pain-val').innerText = `${val} / 10`;
+    }
+
+    function handleLogSubmit(e) {
+      e.preventDefault();
+      const form = e.target;
+      const flow = form.flow_status.value;
+      const pain = parseInt(form.elements['input-pain-slider'].value);
+      const latchTime = form.elements['input-latch-time'].value;
+
+      // Update bed 104 data
+      const motherBed = appState.beds.find(b => b.id === 104);
+      if (motherBed) {
+        motherBed.milkFlow = flow;
+        motherBed.painScore = pain;
+        motherBed.lastLog = 'เมื่อสักครู่';
+
+        // Auto calculate triage risk
+        if (pain >= 7 || flow === 'คัดตึงแต่น้ำนมไม่ออก') {
+          motherBed.status = 'urgent';
+        } else if (pain >= 4 || flow === 'ยังไม่ไหล') {
+          motherBed.status = 'warning';
+        } else {
+          motherBed.status = 'normal';
+        }
+
+        // Add history point
+        motherBed.history.push({
+          hour: 15,
+          flow: flow,
+          pain: pain
+        });
+
+        // Update Mother UI
+        document.getElementById('stat-milk-flow').innerText = flow;
+        document.getElementById('stat-pain-level').innerText = `${pain} / 10`;
+
+        const badge = document.getElementById('mother-status-badge');
+        if (motherBed.status === 'urgent') {
+          badge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 flex items-center gap-1';
+          badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> เสี่ยงเต้าคัดแข็ง (ส่งต่อแล้ว)';
+        } else if (motherBed.status === 'warning') {
+          badge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1';
+          badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> เฝ้าระวังเต้าคัด';
+        } else {
+          badge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1';
+          badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> น้ำนมไหลสม่ำเสมอดี';
+        }
+
+        renderMotherHistory();
+        renderWardBeds();
+        if (appState.activeBedId === 104) {
+          selectBedForDetail(104);
+        }
+      }
+
+      closeLogModal();
+      showToast('บันทึกข้อมูลเรียบร้อย ข้อมูลเชื่อมต่อกับวอร์ดพยาบาลทันที', 'success');
+      playToneSuccess();
+    }
+
+    function openAiScanModal() {
+      document.getElementById('modal-ai-scan').classList.remove('hidden');
+      document.getElementById('ai-result-card').classList.add('hidden');
+    }
+
+    function closeAiScanModal() {
+      document.getElementById('modal-ai-scan').classList.add('hidden');
+    }
+
+    function runAiScanSimulation(type) {
+      const overlay = document.getElementById('ai-scanning-overlay');
+      const resultCard = document.getElementById('ai-result-card');
+      const resultConfidence = document.getElementById('ai-result-confidence');
+      const resultText = document.getElementById('ai-result-text');
+      const resultRec = document.getElementById('ai-result-recommendation');
+      const boxLabel = document.getElementById('ai-box-label');
+
+      overlay.classList.remove('hidden');
+      boxLabel.innerText = 'AI กำลังประมวลผล Convolutional Neural Network (CNN)...';
+
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        resultCard.classList.remove('hidden');
+
+        if (type === 'colostrum') {
+          boxLabel.innerText = 'ตรวจพบ: หัวน้ำนมสีเหลืองทอง (Colostrum Level 2)';
+          resultConfidence.innerText = 'ความเชื่อมั่น AI 96.4%';
+          resultConfidence.className = 'text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-[10px]';
+          resultText.innerText = 'วิเคราะห์ภาพ: ลักษณะน้ำนมมีความเข้มข้น มีสารภูมิคุ้มกัน Secretory IgA สูง ไม่มีสีปนเปื้อนของเลือดหรือหนอง ไม่พบลักษณะหัวนมแตก (No Nipple Fissure)';
+          resultRec.innerHTML = '🌿 <strong>ข้อแนะนำผดุงครรภ์ไทย:</strong> น้ำนมหยดแรกทรงคุณค่ามาก ให้ทารกดูดกลืนทันทีภายใน 15 นาทีนี้เพื่อรับภูมิคุ้มกันธรรมชาติ';
+        } else {
+          boxLabel.innerText = 'ตรวจพบ: บริเวณลานนมบวมแดง (Engorgement Grade 3)';
+          resultConfidence.innerText = 'ความเชื่อมั่น AI 93.1%';
+          resultConfidence.className = 'text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full text-[10px]';
+          resultText.innerText = 'วิเคราะห์ภาพ: ตรวจพบ Erythema (รอยแดง) บริเวณควอแดรนต์บนของเต้าซ้าย ลานนมตึงแข็ง หัวนมเริ่มแบนลง เสี่ยงต่อการเกิดท่อน้ำนมอุดตันเฉียบพลัน';
+          resultRec.innerHTML = '🌿 <strong>ข้อแนะนำผดุงครรภ์ไทย:</strong> ส่งคำเตือนไปยังเคาน์เตอร์พยาบาลแล้ว แนะนำประคบสมุนไพรสดลดบวมและนวดเปิดท่อน้ำนมทันที';
+        }
+      }, 1200);
+    }
+
+    function showGuideModal(type) {
+      const modal = document.getElementById('modal-guide');
+      const title = document.getElementById('guide-title');
+      const body = document.getElementById('guide-body');
+
+      modal.classList.remove('hidden');
+
+      if (type === 'compress') {
+        title.innerText = '♨️ ตำรับลูกประคบสมุนไพรอบอุ่นเต้านม 24 ชม.';
+        body.innerHTML = `
+          <div class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-amber-900 mb-2">
+            <strong>สรรพคุณตามคัมภีร์มหาโชตรัต:</strong> ช่วยกระจายเลือดลมที่คั่งค้าง คลายเส้นเอ็นฐานเต้า และลดอาการคัดตึงเป็นก้อนหิน
+          </div>
+          <ol class="list-decimal list-inside space-y-1.5">
+            <li><strong>สมุนไพรหลัก:</strong> ไพลสด (แก้ฟกช้ำบวม), ผิวมะกรูด (มีน้ำมันหอมระเหยเปิดท่อลม), ขมิ้นอ้อย, ใบมะขาม (มีกรดอ่อนช่วยเปิดรูขุมขน), การบูร</li>
+            <li><strong>วิธีประคบ:</strong> นึ่งลูกประคบให้ร้อนพอดี ทดสอบกับท้องแขนก่อน ประคบคลึงรอบฐานเต้านมเป็นวงกลม <strong>ห้ามประคบโดนยอดหัวนมโดยตรง</strong></li>
+            <li><strong>เวลาที่เหมาะสม:</strong> ประคบ 10-15 นาทีก่อนนำลูกเข้าเต้า</li>
+          </ol>
+        `;
+      } else if (type === 'massage') {
+        title.innerText = '🤲 ท่ากดจุดนวดเปิดท่อน้ำนม (เส้นประธานสิบ)';
+        body.innerHTML = `
+          <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-emerald-900 mb-2">
+            <strong>ศาสตร์ผดุงครรภ์ไทย:</strong> กระตุ้นลมกองละเอียดและเปิดทางเดินน้ำนมตามเส้นอิทาและปิงคลา
+          </div>
+          <div class="space-y-2">
+            <p><strong>1. ท่าระบายฐานเต้า (Base Clearing):</strong> ใช้อุ้งมือทั้งสองข้างโอบประคองฐานเต้า แล้วค่อยๆ นวดคลึงเป็นก้นหอยจากขอบนอกเข้าหาลานนม</p>
+            <p><strong>2. ท่ากระตุ้นต่อมน้ำนม (C-Hold Pump):</strong> ใช้หัวแม่มือและนิ้วชี้กดรูดเบาๆ ห่างจากโคนหัวนม 2-3 เซนติเมตร เป็นจังหวะสม่ำเสมอ</p>
+            <p><strong>3. ท่าเขี่ยสะกิด White Dot:</strong> หากตรวจพบจุดขาวอุดตันที่รูเปิด ให้ประคบอุ่นแล้วใช้ผ้านุ่มสะอาดชุบน้ำอุ่นเช็ดเบาๆ</p>
+          </div>
+        `;
+      } else {
+        title.innerText = '🍲 โภชนบำบัดตามธาตุเจ้าเรือน (24 ชม. แรก)';
+        body.innerHTML = `
+          <div class="space-y-2">
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <strong class="text-rose-700">ธาตุลม (วาโย):</strong> คุณศิริพร (เตียง 104)<br>
+              เน้นอาหารรสเผ็ดร้อนอ่อนๆ เช่น แกงเลียงหัวปลี, น้ำต้มขิงแก่, ยำหัวปลีกุ้งสด ช่วยขับลมกระจายเลือด
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <strong class="text-amber-700">ธาตุดิน (ปฐวี):</strong><br>
+              เน้นอาหารรสฝาด หวาน มัน เค็ม เช่น ฟักทองนึ่ง, ต้มส้มปลาช่อน, เม็ดขนุนต้ม
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <strong class="text-blue-700">ธาตุน้ำ (อาโป):</strong><br>
+              เน้นอาหารรสเปรี้ยว ขม ช่วยแก้เสมหะ เช่น แกงส้มมะรุม, น้ำมะนาวอุ่น
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <strong class="text-emerald-700">ธาตุไฟ (เตโช):</strong><br>
+              เน้นอาหารรสเย็น จืด เช่น ฟักต้ม, ต้มจืดตำลึงหมูสับ เพื่อไม่ให้ไฟธาตุกำเริบจนเต้าอักเสบ
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function closeGuideModal() {
+      document.getElementById('modal-guide').classList.add('hidden');
+    }
+
+    function openMidwiferyOrderModal() {
+      document.getElementById('modal-midwife-order').classList.remove('hidden');
+    }
+
+    function closeMidwiferyOrderModal() {
+      document.getElementById('modal-midwife-order').classList.add('hidden');
+    }
+
+    function handleMidwifeOrderSubmit(e) {
+      e.preventDefault();
+      closeMidwiferyOrderModal();
+      showToast('ส่งใบสั่งหัตถการผดุงครรภ์ไทยเรียบร้อยแล้ว ทีมแพทย์กำลังเดินทางไปที่เตียง', 'success');
+      playToneSuccess();
+    }
+
+    function requestEmergencyMidwife() {
+      showToast('ระบบส่งสัญญาณด่วนถึงแพทย์แผนไทยประจำตึกแล้ว กำลังเข้าพบที่เตียง 104', 'warning');
+      playToneSuccess();
+      
+      // Update mother card state to urgent
+      const motherBed = appState.beds.find(b => b.id === 104);
+      if (motherBed) {
+        motherBed.status = 'urgent';
+        renderWardBeds();
+        selectBedForDetail(104);
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let bg = 'bg-slate-900 text-white';
+      let icon = 'ℹ️';
+      if (type === 'success') {
+        bg = 'bg-emerald-700 text-white shadow-lg shadow-emerald-700/30';
+        icon = '✅';
+      } else if (type === 'warning') {
+        bg = 'bg-rose-600 text-white shadow-lg shadow-rose-600/30';
+        icon = '🚨';
+      }
+
+      toast.className = `${bg} px-4 py-3 rounded-2xl text-xs font-medium flex items-center gap-2 pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0 shadow-lg`;
+      toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    /* Web Audio API Tone Synthesizer for UI feedback */
+    function playToneSuccess() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.25);
+      } catch (e) {
+        // AudioContext fallback
+      }
+    }
+  </script>
+</body>
+</html>
